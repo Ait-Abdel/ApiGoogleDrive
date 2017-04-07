@@ -54,12 +54,21 @@ if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
             $files[] = $file;
         }
     }
-    
+
     $dir->close();
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && $client->getAccessToken()) {
+
         $service = new Google_Service_Drive($client);
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $file = new Google_Service_Drive_DriveFile();
+//        if (!isset($_POST["dossier"])) {
+            $file = new Google_Service_Drive_DriveFile(array(
+                'parents' => array($_POST["dossier"])
+            ));
+//        } else {
+//            $file = new Google_Service_Drive_DriveFile();
+//            echo "parent";
+//        }
+
         $chunkSizeBytes = 1 * 1024 * 1024;
 
         foreach ($files as $file_name) {
@@ -109,43 +118,42 @@ if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
     }
 }
 
-    function readVideoChunk($handle, $chunkSize) {
-        $byteCount = 0;
-        $giantChunk = "";
-        while (!feof($handle)) {
-            // fread will never return more than 8192 bytes if the stream is read buffered and it does not represent a plain file
-            $chunk = fread($handle, 8192);
-            $byteCount += strlen($chunk);
-            $giantChunk .= $chunk;
-            if ($byteCount >= $chunkSize) {
-                return $giantChunk;
-            }
+function readVideoChunk($handle, $chunkSize) {
+    $byteCount = 0;
+    $giantChunk = "";
+    while (!feof($handle)) {
+        // fread will never return more than 8192 bytes if the stream is read buffered and it does not represent a plain file
+        $chunk = fread($handle, 8192);
+        $byteCount += strlen($chunk);
+        $giantChunk .= $chunk;
+        if ($byteCount >= $chunkSize) {
+            return $giantChunk;
         }
-        return $giantChunk;
     }
+    return $giantChunk;
+}
 
-    function retrieveAllFiles($service) {
-        $result = array();
-        $pageToken = NULL;
+function retrieveAllFiles($service) {
+    $result = array();
+    $pageToken = NULL;
 
-        do {
-            try {
-                $parameters = array();
-                $parameters['q'] = "mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false";
-                if ($pageToken) {
-                    $parameters['pageToken'] = $pageToken;
-                }
-                $files = $service->files->listFiles($parameters);
-
-                $result = array_merge($result, $files->getFiles());
-                $pageToken = $files->getNextPageToken();
-            } catch (Exception $e) {
-                print "An error occurred: " . $e->getMessage();
-                $pageToken = NULL;
+    do {
+        try {
+            $parameters = array();
+            $parameters['q'] = "mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false";
+            if ($pageToken) {
+                $parameters['pageToken'] = $pageToken;
             }
-        } while ($pageToken);
-        return $result;
-    }
+            $files = $service->files->listFiles($parameters);
 
-    include 'index.phtml';
-    
+            $result = array_merge($result, $files->getFiles());
+            $pageToken = $files->getNextPageToken();
+        } catch (Exception $e) {
+            print "An error occurred: " . $e->getMessage();
+            $pageToken = NULL;
+        }
+    } while ($pageToken);
+    return $result;
+}
+
+include 'index.phtml';

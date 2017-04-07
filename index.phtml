@@ -12,6 +12,15 @@
         </ul>
         <form method="post" action="<?php echo $url; ?>">
             <input type="submit" value="envoyer" name="submit">
+            <select id ="dossier" name="dossier">
+                <?php 
+                foreach ($dossier as $unDossier){
+                    echo "<option value='".$unDossier->id."'> ";
+                    echo $unDossier->name;
+                    echo " </option>";
+                }
+                ?>
+            </select>
         </form>
     </body>
 </html>
