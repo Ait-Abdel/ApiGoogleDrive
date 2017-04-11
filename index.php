@@ -4,13 +4,16 @@ session_start();
 $url_array = explode('?', 'http://' . $_SERVER ['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
 $url = $url_array[0];
 var_dump($url);
-
 include_once __DIR__ . '/vendor/autoload.php';
 require '../googleKey.php';
 $client = new Google_Client();
 ajouterKey($client); // dans le fichier googleKey.php
 $client->setRedirectUri($url);
 $client->setScopes(array('https://www.googleapis.com/auth/drive'));
+
+if (isset($_GET['action']) && $_GET['action'] == "deco") {
+    unset($_SESSION['upload_token']);
+}
 /* authentication google */
 if (isset($_GET['code'])) {
     $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
@@ -30,10 +33,6 @@ if (!empty($_SESSION['upload_token'])) {
     header('location:' . $authUrl);
     // var_dump($authUrl);
 }
-
-
-
-
 if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
     $client->setAccessToken($_SESSION['upload_token']);
     $drive = new Google_Service_Drive($client);
@@ -41,11 +40,6 @@ if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
     foreach ($dossier as $unDossier) {
         echo"- " . $unDossier->name . " <br>";
     }
-
-
-
-
-
     /* fichier  ajouter au drive */
     $files = array();
     $dir = dir('files');
@@ -54,38 +48,27 @@ if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
             $files[] = $file;
         }
     }
-
     $dir->close();
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && $client->getAccessToken()) {
-
         $service = new Google_Service_Drive($client);
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
 //        if (!isset($_POST["dossier"])) {
-            $file = new Google_Service_Drive_DriveFile(array(
-                'parents' => array($_POST["dossier"])
-            ));
+        $file = new Google_Service_Drive_DriveFile(array(
+            'parents' => array($_POST["dossier"])
+        ));
 //        } else {
 //            $file = new Google_Service_Drive_DriveFile();
 //            echo "parent";
 //        }
-
         $chunkSizeBytes = 1 * 1024 * 1024;
-
         foreach ($files as $file_name) {
-
             $file_path = 'files/' . $file_name;
-
-
-
             $mime_type = finfo_file($finfo, $file_path);
             $file->name = $file_name;
             $file->setDescription('This is a ' . $mime_type . ' document');
             $client->setDefer(true);
             $request = $service->files->create($file);
-
             // $file->setMimeType($mime_type);
-
-
             $media = new Google_Http_MediaFileUpload(
                     $client, $request, $mime_type, null, true, $chunkSizeBytes
             );
@@ -136,7 +119,6 @@ function readVideoChunk($handle, $chunkSize) {
 function retrieveAllFiles($service) {
     $result = array();
     $pageToken = NULL;
-
     do {
         try {
             $parameters = array();
@@ -145,7 +127,6 @@ function retrieveAllFiles($service) {
                 $parameters['pageToken'] = $pageToken;
             }
             $files = $service->files->listFiles($parameters);
-
             $result = array_merge($result, $files->getFiles());
             $pageToken = $files->getNextPageToken();
         } catch (Exception $e) {

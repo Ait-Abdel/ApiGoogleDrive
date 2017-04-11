@@ -5,10 +5,11 @@
         <title>Google Drive Example App</title>
     </head>
     <body>
+        <a href="<?php echo $url;?>?action=deco">Deco</a>
         <ul>
         <?php foreach ($files as $file) { ?>
             <li><?php echo $file; ?></li>
-        <?php } ?>
+        <?php }?>
         </ul>
         <form method="post" action="<?php echo $url; ?>">
             <input type="submit" value="envoyer" name="submit">
@@ -22,5 +23,6 @@
                 ?>
             </select>
         </form>
+        
     </body>
 </html>
