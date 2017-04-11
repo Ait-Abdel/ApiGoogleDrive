@@ -31,7 +31,6 @@ if (!empty($_SESSION['upload_token'])) {
 } else {
     $authUrl = $client->createAuthUrl();
     header('location:' . $authUrl);
-    // var_dump($authUrl);
 }
 if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
     $client->setAccessToken($_SESSION['upload_token']);
@@ -40,6 +39,19 @@ if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
     foreach ($dossier as $unDossier) {
         echo"- " . $unDossier->name . " <br>";
     }
+
+    try {
+        $optParams = array(
+            "fields"=> "storageQuota"
+        );
+        $about = $drive->about->get($optParams);
+        $storage = $about->getStorageQuota();
+        echo "<br> Espace dispo : " .formatBytes($storage["limit"]);
+        echo "<br> Espace Utiliser : " . formatBytes($storage["usage"]);
+    } catch (Exception $e) {
+        print "An error occurred: " . $e->getMessage();
+    }
+
     /* fichier  ajouter au drive */
     $files = array();
     $dir = dir('files');
@@ -72,9 +84,7 @@ if (isset($_SESSION['upload_token']) && $_SESSION['upload_token']) {
             $media = new Google_Http_MediaFileUpload(
                     $client, $request, $mime_type, null, true, $chunkSizeBytes
             );
-            // var_dump($media);
             $media->setFileSize(filesize($file_path));
-            // var_dump(filesize($file_path));
             // Upload the various chunks. $status will be false until the process is
             // complete.
             $status = false;
@@ -135,6 +145,19 @@ function retrieveAllFiles($service) {
         }
     } while ($pageToken);
     return $result;
+}
+function formatBytes($bytes, $precision = 2) { 
+    $units = array('B', 'KB', 'MB', 'GB', 'TB'); 
+
+    $bytes = max($bytes, 0); 
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024)); 
+    $pow = min($pow, count($units) - 1); 
+
+    // Uncomment one of the following alternatives
+     $bytes /= pow(1024, $pow);
+//     $bytes /= (1 << (10 * $pow)); 
+
+    return round($bytes, $precision) . ' ' . $units[$pow]; 
 }
 
 include 'index.phtml';
